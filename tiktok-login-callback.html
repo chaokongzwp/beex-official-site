@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TikTok Login Callback | BeeX</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #17202a;
+        background: #fbfcfd;
+      }
+
+      body {
+        display: grid;
+        min-height: 100vh;
+        margin: 0;
+        place-items: center;
+        padding: 24px;
+      }
+
+      main {
+        width: min(520px, 100%);
+        padding: 28px;
+        background: #fff;
+        border: 1px solid #dce3ea;
+        border-radius: 8px;
+        box-shadow: 0 24px 70px rgba(23, 32, 42, 0.1);
+      }
+
+      .mark {
+        display: inline-grid;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 18px;
+        place-items: center;
+        border-radius: 8px;
+        background: #f6c445;
+        color: #15110a;
+        font-size: 26px;
+        font-weight: 900;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 28px;
+        line-height: 1.15;
+      }
+
+      p {
+        margin: 0;
+        color: #627182;
+        line-height: 1.55;
+      }
+
+      .status {
+        display: inline-block;
+        margin-top: 18px;
+        padding: 8px 10px;
+        background: #f6c445;
+        border-radius: 8px;
+        color: #1b1b1b;
+        font-weight: 800;
+      }
+
+      .status.error {
+        background: #ffe8e2;
+        color: #b42318;
+      }
+
+      .status.success {
+        background: #e2f8ec;
+        color: #087443;
+      }
+
+      .debug {
+        display: none;
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        background: #f6f8fa;
+        color: #465568;
+        font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .debug.show {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark">B</div>
+      <h1 id="title">Completing TikTok login</h1>
+      <p id="description">Please keep this page open. BeeX is verifying your TikTok account.</p>
+      <div id="status" class="status">Processing...</div>
+      <pre id="debug" class="debug"></pre>
+    </main>
+
+    <script>
+      const API_BASE_URL = "https://api-id-test.beexofficial.com";
+      const H5_FALLBACK_URL = "http://h5-id-test.beexofficial.com/";
+      const params = new URLSearchParams(window.location.search);
+      const statusEl = document.getElementById("status");
+      const titleEl = document.getElementById("title");
+      const descriptionEl = document.getElementById("description");
+      const debugEl = document.getElementById("debug");
+
+      function setStatus(kind, title, description, detail) {
+        statusEl.className = `status ${kind || ""}`.trim();
+        statusEl.textContent = kind === "error" ? "Login failed" : kind === "success" ? "Login complete" : "Processing...";
+        titleEl.textContent = title;
+        descriptionEl.textContent = description;
+        if (detail) {
+          debugEl.textContent = detail;
+          debugEl.classList.add("show");
+        }
+      }
+
+      function postAuthToOpener(auth) {
+        if (!window.opener || window.opener.closed) {
+          return false;
+        }
+        window.opener.postMessage({ type: "BEEX_AUTH_SUCCESS", auth }, "*");
+        return true;
+      }
+
+      function redirectWithAuth(auth) {
+        const target = auth.returnUrl || H5_FALLBACK_URL;
+        const url = new URL(target, window.location.origin);
+        url.searchParams.set("provider", "TIKTOK");
+        url.searchParams.set("login", "success");
+        url.hash = `beex_auth=${encodeAuth(auth)}`;
+        window.location.replace(url.toString());
+      }
+
+      function encodeAuth(auth) {
+        const json = JSON.stringify(auth);
+        const binary = unescape(encodeURIComponent(json));
+        return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      }
+
+      function closeSoon() {
+        window.setTimeout(() => {
+          window.close();
+        }, 900);
+      }
+
+      async function completeLogin() {
+        const error = params.get("error") || "";
+        const errorDescription = params.get("error_description") || "";
+        const code = params.get("code") || params.get("auth_code") || "";
+        const state = params.get("state") || "";
+
+        if (error) {
+          throw new Error(errorDescription || error);
+        }
+        if (!code || !state) {
+          throw new Error("Missing TikTok login code or state.");
+        }
+
+        const callbackUrl = new URL(`${API_BASE_URL}/api/v1/auth/tiktok/callback`);
+        callbackUrl.searchParams.set("code", code);
+        callbackUrl.searchParams.set("state", state);
+
+        const response = await fetch(callbackUrl.toString(), {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          credentials: "omit"
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body || body.success === false || !body.data) {
+          throw new Error(body?.message || `TikTok login callback failed: ${response.status}`);
+        }
+
+        const auth = body.data;
+        setStatus("success", "TikTok login complete", "You can return to BeeX now.");
+        if (postAuthToOpener(auth)) {
+          closeSoon();
+          return;
+        }
+        redirectWithAuth(auth);
+      }
+
+      completeLogin().catch((error) => {
+        setStatus("error", "TikTok login failed", "Please close this page and try logging in again from BeeX.", error.message || String(error));
+      });
+    </script>
+  </body>
+</html>
