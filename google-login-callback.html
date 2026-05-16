@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Google Login Callback | BeeX</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #17202a;
+        background: #fbfcfd;
+      }
+
+      body {
+        display: grid;
+        min-height: 100vh;
+        margin: 0;
+        place-items: center;
+        padding: 24px;
+      }
+
+      main {
+        width: min(520px, 100%);
+        padding: 28px;
+        background: #fff;
+        border: 1px solid #dce3ea;
+        border-radius: 8px;
+        box-shadow: 0 24px 70px rgba(23, 32, 42, 0.1);
+      }
+
+      .mark {
+        display: inline-grid;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 18px;
+        place-items: center;
+        border-radius: 8px;
+        background: #f6c445;
+        color: #15110a;
+        font-size: 26px;
+        font-weight: 900;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 28px;
+        line-height: 1.15;
+      }
+
+      p {
+        margin: 0;
+        color: #627182;
+        line-height: 1.55;
+      }
+
+      .status {
+        display: inline-block;
+        margin-top: 18px;
+        padding: 8px 10px;
+        background: #f6c445;
+        border-radius: 8px;
+        color: #1b1b1b;
+        font-weight: 800;
+      }
+
+      .status.error {
+        background: #ffe8e2;
+        color: #b42318;
+      }
+
+      .status.success {
+        background: #e2f8ec;
+        color: #087443;
+      }
+
+      .debug {
+        display: none;
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        background: #f6f8fa;
+        color: #465568;
+        font: 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .debug.show {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark">B</div>
+      <h1 id="title">Completing Google login</h1>
+      <p id="description">Please keep this page open. BeeX is verifying your Google account.</p>
+      <div id="status" class="status">Processing...</div>
+      <pre id="debug" class="debug"></pre>
+    </main>
+
+    <script>
+      const API_BASE_URL = "https://api-id-test.beexofficial.com";
+      const H5_FALLBACK_URL = "http://h5-id-test.beexofficial.com/";
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash);
+      const statusEl = document.getElementById("status");
+      const titleEl = document.getElementById("title");
+      const descriptionEl = document.getElementById("description");
+      const debugEl = document.getElementById("debug");
+
+      function setStatus(kind, title, description, detail) {
+        statusEl.className = `status ${kind || ""}`.trim();
+        statusEl.textContent = kind === "error" ? "Login failed" : kind === "success" ? "Login complete" : "Processing...";
+        titleEl.textContent = title;
+        descriptionEl.textContent = description;
+        if (detail) {
+          debugEl.textContent = detail;
+          debugEl.classList.add("show");
+        }
+      }
+
+      function decodeBase64UrlJson(value) {
+        try {
+          const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+          const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+          const binary = atob(padded);
+          const bytes = Array.from(binary, (char) => `%${char.charCodeAt(0).toString(16).padStart(2, "0")}`).join("");
+          return JSON.parse(decodeURIComponent(bytes));
+        } catch {
+          return null;
+        }
+      }
+
+      function encodeAuth(auth) {
+        const json = JSON.stringify(auth);
+        const binary = unescape(encodeURIComponent(json));
+        return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      }
+
+      function safeReturnUrl(value) {
+        if (!value) return H5_FALLBACK_URL;
+        try {
+          const url = new URL(value, window.location.origin);
+          const allowedHosts = new Set([
+            "h5-id-test.beexofficial.com",
+            "www.beexofficial.com",
+            "beexofficial.com",
+            "localhost",
+            "127.0.0.1"
+          ]);
+          return allowedHosts.has(url.hostname) ? url.toString() : H5_FALLBACK_URL;
+        } catch {
+          return H5_FALLBACK_URL;
+        }
+      }
+
+      function postAuthToOpener(auth) {
+        if (!window.opener || window.opener.closed) {
+          return false;
+        }
+        window.opener.postMessage({ type: "BEEX_AUTH_SUCCESS", auth }, "*");
+        return true;
+      }
+
+      function redirectWithAuth(auth, returnUrl) {
+        const url = new URL(safeReturnUrl(returnUrl), window.location.origin);
+        url.searchParams.set("provider", "GOOGLE");
+        url.searchParams.set("login", "success");
+        url.hash = `beex_auth=${encodeAuth(auth)}`;
+        window.location.replace(url.toString());
+      }
+
+      function closeSoon() {
+        window.setTimeout(() => {
+          window.close();
+        }, 900);
+      }
+
+      async function completeLogin() {
+        const error = searchParams.get("error") || hashParams.get("error") || "";
+        const errorDescription = searchParams.get("error_description") || hashParams.get("error_description") || "";
+        const idToken = hashParams.get("id_token") || searchParams.get("id_token") || "";
+        const stateValue = hashParams.get("state") || searchParams.get("state") || "";
+        const state = decodeBase64UrlJson(stateValue) || {};
+
+        if (error) {
+          throw new Error(errorDescription || error);
+        }
+        if (!idToken) {
+          throw new Error("Missing Google identity token.");
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/v1/auth/google/id-token`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json"
+          },
+          credentials: "omit",
+          body: JSON.stringify({
+            countryCode: state.countryCode || "ID",
+            deviceId: state.deviceId || "google_web_callback",
+            idToken,
+            nonce: state.nonce || ""
+          })
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body || body.success === false || !body.data) {
+          throw new Error(body?.message || `Google login callback failed: ${response.status}`);
+        }
+
+        const auth = body.data;
+        setStatus("success", "Google login complete", "You can return to BeeX now.");
+        if (postAuthToOpener(auth)) {
+          closeSoon();
+          return;
+        }
+        redirectWithAuth(auth, state.returnUrl);
+      }
+
+      completeLogin().catch((error) => {
+        setStatus("error", "Google login failed", "Please close this page and try logging in again from BeeX.", error.message || String(error));
+      });
+    </script>
+  </body>
+</html>
