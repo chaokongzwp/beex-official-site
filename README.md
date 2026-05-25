@@ -1,6 +1,6 @@
 # BeeX Official Site
 
-Static official website for BeeX, operated by PT Sinar Ultra Utama.
+Static official website for BeeX, an Indonesia-focused affiliate commerce app.
 
 ## Local Preview
 
@@ -34,4 +34,4 @@ GitHub Pages fallback is also enabled:
 - `www.beexofficial.com` CNAME to `chaokongzwp.github.io`
 - After DNS resolves, add `www.beexofficial.com` as the custom domain in the GitHub Pages settings and enable HTTPS.
 
-Contact email shown on the site: `mars@beexofficial.com`.
+Contact email shown on the site: `support@beexofficial.com`.
