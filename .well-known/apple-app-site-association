@@ -5,6 +5,14 @@
       {
         "appID": "6P5889RP3B.com.beexofficial.x",
         "paths": [
+          "/auth/*",
+          "/invite/*",
+          "/s/*",
+          "/share/*",
+          "/tiktok-login-callback.html",
+          "/google-login-callback.html",
+          "/payment-success.html",
+          "/payment-failed.html",
           "/test/*"
         ]
       }
