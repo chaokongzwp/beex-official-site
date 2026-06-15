@@ -9,6 +9,8 @@
           "/invite/*",
           "/s/*",
           "/share/*",
+          "/h/*",
+          "/honey/*",
           "/tiktok-login-callback.html",
           "/google-login-callback.html",
           "/payment-success.html",
