@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opening BeeX</title>
+  <meta name="description" content="Open BeeX">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="BeeX">
+  <meta property="og:description" content="Open BeeX to continue.">
+  <meta property="og:image" content="https://www.beexofficial.com/assets/beex-logo.png">
+  <script>
+    (function () {
+      var routes = [
+        { pattern: /^\/h\/([^/?#]+)/, target: "/honey/" },
+        { pattern: /^\/s\/([^/?#]+)/, target: "/share/" },
+        { pattern: /^\/invite\/([^/?#]+)/, target: "/invite/" }
+      ];
+      var h5BaseUrl = "https://h5-id-test.beexofficial.com";
+      var code = "";
+      var targetPath = "/";
+
+      for (var i = 0; i < routes.length; i += 1) {
+        var match = window.location.pathname.match(routes[i].pattern);
+        if (match) {
+          code = match[1];
+          targetPath = routes[i].target + encodeURIComponent(code);
+          break;
+        }
+      }
+
+      window.location.replace(h5BaseUrl + targetPath + window.location.search + window.location.hash);
+    })();
+  </script>
+</head>
+<body>
+  <p>Opening BeeX...</p>
+  <p><a id="continue-link" href="https://h5-id-test.beexofficial.com/">Continue</a></p>
+  <script>
+    (function () {
+      var routes = [
+        { pattern: /^\/h\/([^/?#]+)/, target: "/honey/" },
+        { pattern: /^\/s\/([^/?#]+)/, target: "/share/" },
+        { pattern: /^\/invite\/([^/?#]+)/, target: "/invite/" }
+      ];
+      var h5BaseUrl = "https://h5-id-test.beexofficial.com";
+      var code = "";
+      var targetPath = "/";
+
+      for (var i = 0; i < routes.length; i += 1) {
+        var match = window.location.pathname.match(routes[i].pattern);
+        if (match) {
+          code = match[1];
+          targetPath = routes[i].target + encodeURIComponent(code);
+          break;
+        }
+      }
+
+      document.getElementById("continue-link").href = h5BaseUrl + targetPath + window.location.search + window.location.hash;
+    })();
+  </script>
+</body>
+</html>

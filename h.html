@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opening BeeX</title>
+  <meta name="description" content="Open BeeX Honey Feed">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="BeeX Honey Feed">
+  <meta property="og:description" content="Open BeeX to view this Honey Feed post.">
+  <meta property="og:image" content="https://www.beexofficial.com/assets/beex-logo.png">
+  <script>
+    (function () {
+      var match = window.location.pathname.match(/^\/h\/([^/?#]+)/);
+      var code = match ? match[1] : "";
+      var target = code
+        ? "https://h5-id-test.beexofficial.com/honey/" + encodeURIComponent(code)
+        : "https://h5-id-test.beexofficial.com/";
+      window.location.replace(target + window.location.search + window.location.hash);
+    })();
+  </script>
+</head>
+<body>
+  <p>Opening BeeX...</p>
+  <p><a id="continue-link" href="https://h5-id-test.beexofficial.com/">Continue</a></p>
+  <script>
+    (function () {
+      var match = window.location.pathname.match(/^\/h\/([^/?#]+)/);
+      var code = match ? match[1] : "";
+      var target = code
+        ? "https://h5-id-test.beexofficial.com/honey/" + encodeURIComponent(code)
+        : "https://h5-id-test.beexofficial.com/";
+      document.getElementById("continue-link").href = target + window.location.search + window.location.hash;
+    })();
+  </script>
+</body>
+</html>
