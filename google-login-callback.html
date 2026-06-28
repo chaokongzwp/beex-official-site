@@ -102,8 +102,12 @@
     </main>
 
     <script>
-      const API_BASE_URL = "https://api-id-test.beexofficial.com";
-      const H5_FALLBACK_URL = "http://h5-id-test.beexofficial.com/";
+      // 环境感知:按 state.returnUrl 的 host 决定后端(生产 h5-id→api-id;测试 h5-id-test→api-id-test)。生产 www 上默认生产。
+      function isTestReturn(returnUrl) {
+        try { return new URL(returnUrl || "", window.location.origin).hostname.includes("-test"); } catch (e) { return false; }
+      }
+      function apiBaseFor(returnUrl) { return isTestReturn(returnUrl) ? "https://api-id-test.beexofficial.com" : "https://api-id.beexofficial.com"; }
+      const H5_FALLBACK_URL = "https://h5-id.beexofficial.com/";
       const searchParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash);
       const statusEl = document.getElementById("status");
@@ -145,6 +149,7 @@
         try {
           const url = new URL(value, window.location.origin);
           const allowedHosts = new Set([
+            "h5-id.beexofficial.com",
             "h5-id-test.beexofficial.com",
             "www.beexofficial.com",
             "beexofficial.com",
@@ -185,6 +190,7 @@
         const idToken = hashParams.get("id_token") || searchParams.get("id_token") || "";
         const stateValue = hashParams.get("state") || searchParams.get("state") || "";
         const state = decodeBase64UrlJson(stateValue) || {};
+        const apiBase = apiBaseFor(state.returnUrl);
 
         if (error) {
           throw new Error(errorDescription || error);
@@ -193,7 +199,7 @@
           throw new Error("Missing Google identity token.");
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/v1/auth/google/id-token`, {
+        const response = await fetch(`${apiBase}/api/v1/auth/google/id-token`, {
           method: "POST",
           headers: {
             Accept: "application/json",
